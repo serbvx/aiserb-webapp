@@ -1,233 +1,181 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>AISerb — ИИ ассистент</title>
-<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
-<script src="https://telegram.org/js/telegram-web-app.js"></script>
-<style>
-*{margin:0;padding:0;box-sizing:border-box}
-:root{--bg-dark:#0a0806;--bg-card:#14100a;--gold:#d4af37;--gold-dim:#aa8833;--gold-glow:rgba(212,175,55,0.15);--text-light:#f5f0e6;--text-dim:#a89880;--border:rgba(212,175,55,0.25);--input-bg:#1a150e}
-body{background:var(--bg-dark);font-family:'Segoe UI',system-ui,sans-serif;color:var(--text-light);height:100vh;display:flex;flex-direction:column;overflow:hidden}
-.header{background:linear-gradient(135deg,#0d0a06,#120e08);border-bottom:1px solid var(--border);padding:12px 16px;display:flex;align-items:center;gap:12px;flex-shrink:0}
-.logo{width:40px;height:40px;background:linear-gradient(135deg,var(--gold-dim),var(--gold));border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:22px;box-shadow:0 0 15px var(--gold-glow)}
-.title h1{font-size:18px;font-weight:600;background:linear-gradient(135deg,var(--gold),#f5e6b0);-webkit-background-clip:text;background-clip:text;color:transparent}
-.title p{font-size:11px;color:var(--text-dim);margin-top:2px}
-.clear-btn{margin-left:auto;background:rgba(212,175,55,0.1);border:1px solid var(--border);color:var(--text-dim);padding:6px 12px;border-radius:20px;font-size:12px;cursor:pointer;transition:all .2s}
-.clear-btn:hover{background:rgba(212,175,55,0.2);color:var(--gold);border-color:var(--gold-dim)}
-.messages{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:16px;scroll-behavior:smooth}
-.messages::-webkit-scrollbar{width:4px}
-.messages::-webkit-scrollbar-track{background:transparent}
-.messages::-webkit-scrollbar-thumb{background:var(--gold-dim);border-radius:4px}
-.message{display:flex;gap:10px;animation:fadeIn .3s ease}
-@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
-.message.user{flex-direction:row-reverse}
-.avatar{width:32px;height:32px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
-.message.bot .avatar{background:linear-gradient(135deg,var(--gold-dim),var(--gold));box-shadow:0 0 8px var(--gold-glow)}
-.message.user .avatar{background:#1e1810;border:1px solid var(--border)}
-.bubble{max-width:80%;padding:10px 14px;border-radius:16px;line-height:1.55;font-size:14px;word-wrap:break-word}
-.message.bot .bubble{background:var(--bg-card);border:1px solid var(--border);border-top-left-radius:4px}
-.message.user .bubble{background:linear-gradient(135deg,#1e1810,#16120a);border:1px solid var(--border);border-top-right-radius:4px;color:#f0e6cc}
-.message.bot .bubble strong{color:var(--gold)}
-.time{font-size:10px;color:var(--text-dim);opacity:.6;margin-top:4px;text-align:right}
-.user .time{text-align:left}
-.bubble pre{background:#0a0806;border:1px solid var(--border);border-radius:8px;padding:10px;overflow-x:auto;margin:8px 0;font-size:12px;font-family:monospace}
-.bubble code{background:#0a0806;padding:2px 6px;border-radius:4px;font-family:monospace;font-size:12px;color:var(--gold)}
-.image-preview{max-width:200px;border-radius:12px;margin-bottom:8px;border:1px solid var(--border)}
-.typing{display:flex;gap:4px;align-items:center;padding:8px 0}
-.typing span{width:6px;height:6px;background:var(--gold-dim);border-radius:50%;animation:pulse 1.2s infinite}
-.typing span:nth-child(2){animation-delay:.2s}
-.typing span:nth-child(3){animation-delay:.4s}
-@keyframes pulse{0%,60%,100%{opacity:.3;transform:translateY(0)}30%{opacity:1;transform:translateY(-4px)}}
-.input-container{background:var(--bg-card);border-top:1px solid var(--border);padding:12px 16px;flex-shrink:0}
-.input-row{display:flex;gap:10px;align-items:flex-end}
-textarea{flex:1;background:var(--input-bg);border:1px solid var(--border);border-radius:20px;padding:10px 16px;color:var(--text-light);font-family:inherit;font-size:14px;resize:none;outline:none;max-height:100px;min-height:42px;line-height:1.4}
-textarea::placeholder{color:var(--text-dim);opacity:.6}
-textarea:focus{border-color:var(--gold)}
-.buttons{display:flex;gap:8px}
-.btn{width:42px;height:42px;border-radius:21px;border:none;cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center;transition:all .2s}
-.btn-photo{background:var(--input-bg);border:1px solid var(--border);color:var(--text-dim)}
-.btn-photo:hover{border-color:var(--gold);color:var(--gold)}
-.btn-send{background:linear-gradient(135deg,var(--gold-dim),var(--gold));color:#0a0806;font-weight:bold;box-shadow:0 0 10px var(--gold-glow)}
-.btn-send:hover{transform:scale(1.02);box-shadow:0 0 15px var(--gold-glow)}
-.btn-send:disabled{opacity:.4;transform:none;cursor:not-allowed}
-#file-input{display:none}
-.welcome{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:32px;gap:16px}
-.welcome-icon{font-size:64px;filter:drop-shadow(0 0 20px var(--gold-glow))}
-.welcome h2{font-size:22px;font-weight:500;background:linear-gradient(135deg,var(--gold),#f5e6b0);-webkit-background-clip:text;background-clip:text;color:transparent}
-.welcome p{color:var(--text-dim);font-size:14px;max-width:280px;line-height:1.6}
-.chips{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:8px}
-.chip{background:rgba(212,175,55,0.1);border:1px solid var(--border);border-radius:20px;padding:6px 14px;font-size:12px;color:var(--text-dim);cursor:pointer;transition:all .2s}
-.chip:hover{background:rgba(212,175,55,0.2);border-color:var(--gold);color:var(--gold)}
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AISerb</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: #0a0806;
+            color: #f5f0e6;
+            font-family: system-ui, sans-serif;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        .header {
+            background: #120e08;
+            border-bottom: 1px solid #d4af37;
+            padding: 12px 16px;
+            display: flex;
+            justify-content: space-between;
+        }
+        .messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .message {
+            display: flex;
+            gap: 10px;
+        }
+        .message.user {
+            flex-direction: row-reverse;
+        }
+        .bubble {
+            background: #1e1810;
+            border: 1px solid #d4af37;
+            padding: 10px 14px;
+            border-radius: 16px;
+            max-width: 80%;
+        }
+        .user .bubble {
+            background: #2a1f0a;
+        }
+        .input-area {
+            background: #120e08;
+            border-top: 1px solid #d4af37;
+            padding: 12px;
+            display: flex;
+            gap: 8px;
+        }
+        textarea {
+            flex: 1;
+            background: #1a150e;
+            border: 1px solid #d4af37;
+            border-radius: 20px;
+            padding: 10px;
+            color: white;
+            font-family: inherit;
+            resize: none;
+            outline: none;
+        }
+        button {
+            background: #d4af37;
+            border: none;
+            border-radius: 20px;
+            padding: 10px 16px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        .typing {
+            display: flex;
+            gap: 4px;
+            padding: 10px;
+        }
+        .typing span {
+            width: 6px;
+            height: 6px;
+            background: #d4af37;
+            border-radius: 50%;
+            animation: pulse 1s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 0.3; }
+            50% { opacity: 1; }
+        }
+    </style>
 </head>
 <body>
 
 <div class="header">
-    <div class="logo"><span>✦</span></div>
-    <div class="title">
-        <h1>AISerb</h1>
-        <p>Llama 3.3 · Vision · LaTeX</p>
-    </div>
-    <button class="clear-btn" onclick="clearChat()">Очистить</button>
+    <div>✨ AISerb</div>
+    <button onclick="clearChat()">Очистить</button>
 </div>
 
 <div class="messages" id="messages">
-    <div class="welcome" id="welcome">
-        <div class="welcome-icon">✨</div>
-        <h2>Чем могу помочь?</h2>
-        <p>Задай любой вопрос, отправь фото задачи — я решу и объясню с красивым оформлением</p>
-        <div class="chips">
-            <div class="chip" onclick="sendChip('Реши уравнение')">Реши уравнение</div>
-            <div class="chip" onclick="sendChip('Объясни тему')">Объясни тему</div>
-            <div class="chip" onclick="sendChip('Напиши код')">Напиши код</div>
-            <div class="chip" onclick="sendChip('Переведи текст')">Переведи текст</div>
-        </div>
+    <div style="text-align:center; margin-top:40px;">
+        ✨ <strong>AISerb</strong><br>
+        Напиши сообщение
     </div>
 </div>
 
-<div class="input-container">
-    <div class="input-row">
-        <textarea id="input" placeholder="Напиши вопрос..." rows="1"></textarea>
-        <div class="buttons">
-            <button class="btn btn-photo" onclick="document.getElementById('file-input').click()">📷</button>
-            <button class="btn btn-send" id="sendBtn" onclick="sendMessage()">➤</button>
-        </div>
-    </div>
-    <input type="file" id="file-input" accept="image/*" onchange="handleFile(event)">
+<div class="input-area">
+    <textarea id="input" placeholder="Напиши вопрос..." rows="1"></textarea>
+    <button onclick="sendMessage()">➤</button>
 </div>
 
 <script>
 const API_URL = "https://unshaven-petri-spotless.ngrok-free.dev/chat";
 
 let history = [];
-let pendingImage = null;
-let isLoading = false;
 
-if (window.Telegram?.WebApp) {
-    Telegram.WebApp.ready();
-    Telegram.WebApp.expand();
-}
-
-function autoResize(t) { t.style.height = 'auto'; t.style.height = Math.min(t.scrollHeight, 100) + 'px'; }
-function handleKey(e) { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } }
-function sendChip(text) { document.getElementById('input').value = text; sendMessage(); }
-function getTime() { return new Date().toLocaleTimeString('ru', { hour:'2-digit', minute:'2-digit' }); }
-function hideWelcome() { const w = document.getElementById('welcome'); if (w) w.remove(); }
-function renderMath(el) { if (window.MathJax) MathJax.typesetPromise([el]).catch(()=>{}); }
-
-function formatContent(text) {
-    let html = text;
-    html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-    html = html.replace(/\*(.*?)\*/g, '<em>$1</em>');
-    html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
-    html = html.replace(/\n/g, '<br>');
-    return html;
-}
-
-function addMessage(role, content, imageSrc = null) {
-    hideWelcome();
+function addMessage(role, text) {
     const container = document.getElementById('messages');
     const div = document.createElement('div');
     div.className = `message ${role}`;
-    const avatar = role === 'bot' ? '🤖' : '👤';
-    const imgHtml = imageSrc ? `<img class="image-preview" src="${imageSrc}" alt="photo">` : '';
-    const formatted = role === 'bot' ? formatContent(content) : formatContent(content);
-    div.innerHTML = `<div class="avatar">${avatar}</div><div class="bubble">${imgHtml}<div class="message-content">${formatted}</div><div class="time">${getTime()}</div></div>`;
+    div.innerHTML = `<div class="bubble">${text}</div>`;
     container.appendChild(div);
     container.scrollTop = container.scrollHeight;
-    renderMath(div.querySelector('.message-content'));
-    return div;
 }
 
 function addTyping() {
-    hideWelcome();
     const container = document.getElementById('messages');
     const div = document.createElement('div');
     div.className = 'message bot';
-    div.id = 'typing-indicator';
-    div.innerHTML = `<div class="avatar">🤖</div><div class="bubble"><div class="typing"><span></span><span></span><span></span></div></div>`;
+    div.id = 'typing';
+    div.innerHTML = `<div class="bubble"><div class="typing"><span></span><span></span><span></span></div></div>`;
     container.appendChild(div);
     container.scrollTop = container.scrollHeight;
 }
 
-function removeTyping() { const t = document.getElementById('typing-indicator'); if (t) t.remove(); }
-
-async function sendMessage() {
-    if (isLoading) return;
-    const input = document.getElementById('input');
-    const text = input.value.trim();
-    const hasImage = pendingImage !== null;
-    if (!text && !hasImage) return;
-    const userText = text || (hasImage ? "Проанализируй это изображение" : "");
-    const currentImage = pendingImage;
-    pendingImage = null;
-    input.value = '';
-    input.style.height = 'auto';
-    addMessage('user', userText, currentImage?.preview || null);
-    if (userText && !currentImage) history.push({ role: 'user', content: userText });
-    isLoading = true;
-    document.getElementById('sendBtn').disabled = true;
-    addTyping();
-    try {
-        let payload = { message: userText, history: history.slice(-10) };
-        if (currentImage?.base64) payload.image = currentImage.base64;
-        const resp = await fetch(API_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-        });
-        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-        const data = await resp.json();
-        const reply = data.response || data.message || "Ответ не получен";
-        if (!currentImage) history.push({ role: 'assistant', content: reply });
-        removeTyping();
-        addMessage('bot', reply);
-    } catch (error) {
-        console.error('Error:', error);
-        removeTyping();
-        addMessage('bot', `⚠️ **Ошибка:** ${error.message}\n\nПроверь, запущен ли сервер.`);
-    }
-    isLoading = false;
-    document.getElementById('sendBtn').disabled = false;
-    document.getElementById('input').focus();
+function removeTyping() {
+    const t = document.getElementById('typing');
+    if (t) t.remove();
 }
 
-function handleFile(event) {
-    const file = event.target.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-        pendingImage = { base64: ev.target.result, preview: ev.target.result };
-        document.getElementById('input').placeholder = '📷 Фото готово! Напиши вопрос...';
-        document.getElementById('input').focus();
-    };
-    reader.readAsDataURL(file);
-    event.target.value = '';
+async function sendMessage() {
+    const input = document.getElementById('input');
+    const text = input.value.trim();
+    if (!text) return;
+    
+    addMessage('user', text);
+    input.value = '';
+    addTyping();
+    
+    try {
+        const res = await fetch(API_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ message: text, history: history })
+        });
+        const data = await res.json();
+        removeTyping();
+        const reply = data.response || "Нет ответа";
+        history.push({ role: 'user', content: text });
+        history.push({ role: 'assistant', content: reply });
+        addMessage('bot', reply);
+    } catch (e) {
+        removeTyping();
+        addMessage('bot', '⚠️ Ошибка: ' + e.message);
+    }
 }
 
 function clearChat() {
     history = [];
-    pendingImage = null;
-    document.getElementById('messages').innerHTML = `<div class="welcome" id="welcome">
-        <div class="welcome-icon">✨</div>
-        <h2>Чем могу помочь?</h2>
-        <p>Задай любой вопрос, отправь фото задачи — я решу и объясню с красивым оформлением</p>
-        <div class="chips">
-            <div class="chip" onclick="sendChip('Реши уравнение')">Реши уравнение</div>
-            <div class="chip" onclick="sendChip('Объясни тему')">Объясни тему</div>
-            <div class="chip" onclick="sendChip('Напиши код')">Напиши код</div>
-            <div class="chip" onclick="sendChip('Переведи текст')">Переведи текст</div>
-        </div>
-    </div>`;
-    document.getElementById('input').placeholder = 'Напиши вопрос...';
-    document.getElementById('input').value = '';
+    document.getElementById('messages').innerHTML = '<div style="text-align:center; margin-top:40px;">✨ <strong>AISerb</strong><br>Напиши сообщение</div>';
 }
 
-const textarea = document.getElementById('input');
-textarea.addEventListener('input', () => autoResize(textarea));
-textarea.addEventListener('keydown', handleKey);
+document.getElementById('input').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        sendMessage();
+    }
+});
 </script>
 </body>
 </html>
