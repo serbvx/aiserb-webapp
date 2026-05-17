@@ -1,585 +1,931 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+
 <title>AISerb</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-svg.min.js"></script>
+
+<!-- Telegram -->
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
+
+<!-- Markdown -->
+<script src="https://cdn.jsdelivr.net/npm/markdown-it/dist/markdown-it.min.js"></script>
+
+<!-- Sanitize -->
+<script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.8/dist/purify.min.js"></script>
+
+<!-- Highlight -->
+<link rel="stylesheet"
+href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+
+<!-- MathJax -->
+<script>
+window.MathJax = {
+  tex: {
+    inlineMath: [['$', '$'], ['\\(', '\\)']],
+    displayMath: [['$$', '$$'], ['\\[', '\\]']]
+  },
+  svg: {
+    fontCache: 'global'
+  }
+};
+</script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-svg.min.js"></script>
+
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300&family=JetBrains+Mono:wght@300;400&display=swap');
+
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;600&family=JetBrains+Mono:wght@300;400;500&display=swap');
 
 :root {
-  --gold:        #C9A84C;
-  --gold-light:  #E8C97A;
-  --gold-dim:    #8B6914;
-  --bg:          #0A0804;
-  --bg2:         #0F0C06;
-  --bg3:         #161008;
-  --surface:     #1A1408;
-  --surface2:    #221A0A;
-  --border:      rgba(201,168,76,0.15);
-  --border2:     rgba(201,168,76,0.3);
-  --text:        #F0E6C8;
-  --text-dim:    #8A7A5A;
-  --text-faint:  #4A3F28;
-  --red:         #C95A4C;
+  --gold: #C9A84C;
+  --gold-light: #F2D27A;
+  --gold-dim: #8B6914;
+
+  --bg: #090704;
+  --bg2: #110C05;
+  --bg3: #1A1207;
+
+  --surface: #151008;
+  --surface2: #211807;
+
+  --border: rgba(201,168,76,0.12);
+  --border2: rgba(201,168,76,0.22);
+
+  --text: #EEE0BC;
+  --text-dim: #9A8660;
+  --text-faint: #54472C;
+
+  --red: #d65d5d;
 }
 
-* { box-sizing: border-box; margin: 0; padding: 0; }
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
 
-html, body {
+html,
+body {
   height: 100%;
+  overflow: hidden;
   background: var(--bg);
   color: var(--text);
   font-family: 'JetBrains Mono', monospace;
-  font-size: 13px;
-  overflow: hidden;
 }
 
-/* ── Noise overlay ── */
 body::before {
   content: '';
-  position: fixed; inset: 0; z-index: 0;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
-  pointer-events: none;
-}
-
-/* ── Gold glow bg ── */
-body::after {
-  content: '';
   position: fixed;
-  top: -40%; left: 50%; transform: translateX(-50%);
-  width: 600px; height: 400px;
-  background: radial-gradient(ellipse, rgba(201,168,76,0.06) 0%, transparent 70%);
-  pointer-events: none; z-index: 0;
+  inset: 0;
+  opacity: 0.04;
+  pointer-events: none;
+  background-image:
+    radial-gradient(circle at 20% 30%, rgba(201,168,76,0.3), transparent 40%),
+    radial-gradient(circle at 80% 70%, rgba(201,168,76,0.2), transparent 40%);
 }
 
 .app {
-  position: relative; z-index: 1;
+  position: relative;
+  z-index: 1;
+
+  max-width: 900px;
+  margin: 0 auto;
+
   height: 100vh;
-  display: flex; flex-direction: column;
-  max-width: 800px; margin: 0 auto;
+
+  display: flex;
+  flex-direction: column;
 }
 
-/* ── Header ── */
 .header {
-  display: flex; align-items: center; gap: 12px;
-  padding: 14px 16px 12px;
-  border-bottom: 1px solid var(--border);
-  background: linear-gradient(180deg, rgba(201,168,76,0.05) 0%, transparent 100%);
   flex-shrink: 0;
+
+  display: flex;
+  align-items: center;
+  gap: 14px;
+
+  padding: 16px;
+
+  border-bottom: 1px solid var(--border);
+
+  background:
+    linear-gradient(
+      180deg,
+      rgba(201,168,76,0.08),
+      transparent
+    );
 }
 
 .header-icon {
-  width: 34px; height: 34px;
-  background: linear-gradient(135deg, var(--gold-dim), var(--gold));
-  border-radius: 8px;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 16px;
-  box-shadow: 0 0 16px rgba(201,168,76,0.3);
-  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+
+  border-radius: 10px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  background:
+    linear-gradient(
+      135deg,
+      var(--gold-dim),
+      var(--gold)
+    );
+
+  font-size: 18px;
+
+  box-shadow:
+    0 0 18px rgba(201,168,76,0.3);
 }
 
-.header-text { flex: 1; }
 .header-title {
   font-family: 'Cormorant Garamond', serif;
-  font-size: 18px; font-weight: 600;
+  font-size: 24px;
   color: var(--gold-light);
-  letter-spacing: 0.5px;
-  line-height: 1;
 }
+
 .header-sub {
-  font-size: 10px; color: var(--text-dim);
-  margin-top: 2px; letter-spacing: 1px;
+  font-size: 11px;
+  color: var(--text-dim);
+  letter-spacing: 2px;
   text-transform: uppercase;
 }
 
 .clear-btn {
-  background: none; border: 1px solid var(--border);
-  color: var(--text-dim); padding: 5px 10px;
-  border-radius: 6px; cursor: pointer; font-size: 11px;
-  font-family: 'JetBrains Mono', monospace;
-  transition: all 0.2s;
-}
-.clear-btn:hover { border-color: var(--gold-dim); color: var(--gold); }
+  margin-left: auto;
 
-/* ── Messages ── */
+  border: 1px solid var(--border);
+  background: transparent;
+
+  color: var(--text-dim);
+
+  border-radius: 8px;
+
+  padding: 7px 14px;
+
+  cursor: pointer;
+
+  transition: 0.2s;
+}
+
+.clear-btn:hover {
+  border-color: var(--gold);
+  color: var(--gold-light);
+}
+
 .messages {
-  flex: 1; overflow-y: auto;
-  padding: 16px;
-  display: flex; flex-direction: column; gap: 16px;
-  scroll-behavior: smooth;
-}
-.messages::-webkit-scrollbar { width: 3px; }
-.messages::-webkit-scrollbar-track { background: transparent; }
-.messages::-webkit-scrollbar-thumb { background: var(--gold-dim); border-radius: 2px; }
+  flex: 1;
+  overflow-y: auto;
 
-/* ── Message bubble ── */
-.msg { display: flex; gap: 10px; animation: fadeUp 0.3s ease; }
-@keyframes fadeUp {
-  from { opacity: 0; transform: translateY(8px); }
-  to   { opacity: 1; transform: translateY(0); }
+  padding: 20px;
+
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
 }
 
-.msg.user { flex-direction: row-reverse; }
+.messages::-webkit-scrollbar {
+  width: 4px;
+}
 
-.msg-avatar {
-  width: 28px; height: 28px; border-radius: 6px;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 13px; flex-shrink: 0; margin-top: 2px;
+.messages::-webkit-scrollbar-thumb {
+  background: var(--gold-dim);
 }
-.msg.bot .msg-avatar {
-  background: linear-gradient(135deg, var(--gold-dim), var(--gold));
-  box-shadow: 0 0 10px rgba(201,168,76,0.2);
+
+.msg {
+  display: flex;
+  gap: 12px;
+
+  animation: fade 0.25s ease;
 }
-.msg.user .msg-avatar {
+
+@keyframes fade {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.msg.user {
+  flex-direction: row-reverse;
+}
+
+.avatar {
+  width: 34px;
+  height: 34px;
+
+  border-radius: 8px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  flex-shrink: 0;
+}
+
+.msg.bot .avatar {
+  background:
+    linear-gradient(
+      135deg,
+      var(--gold-dim),
+      var(--gold)
+    );
+}
+
+.msg.user .avatar {
   background: var(--surface2);
   border: 1px solid var(--border);
 }
 
-.msg-body { max-width: 82%; display: flex; flex-direction: column; gap: 4px; }
-.msg.user .msg-body { align-items: flex-end; }
-
-.msg-bubble {
-  padding: 10px 13px;
-  border-radius: 12px;
-  line-height: 1.65;
-  font-size: 13px;
-  word-break: break-word;
+.msg-body {
+  max-width: 82%;
 }
 
-.msg.bot .msg-bubble {
+.msg.user .msg-body {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.bubble {
+  padding: 14px 16px;
+
+  border-radius: 14px;
+
+  line-height: 1.8;
+
+  overflow-wrap: break-word;
+
+  overflow-x: auto;
+}
+
+.msg.bot .bubble {
   background: var(--surface);
   border: 1px solid var(--border);
-  border-top-left-radius: 3px;
-  color: var(--text);
+
+  border-top-left-radius: 4px;
 }
 
-.msg.user .msg-bubble {
-  background: linear-gradient(135deg, #2A1F08, #1E1608);
+.msg.user .bubble {
+  background:
+    linear-gradient(
+      135deg,
+      #2b1e08,
+      #1b1408
+    );
+
   border: 1px solid var(--border2);
-  border-top-right-radius: 3px;
+
+  border-top-right-radius: 4px;
+
   color: var(--gold-light);
 }
 
-.msg-time {
-  font-size: 10px; color: var(--text-faint);
-  padding: 0 4px;
+.time {
+  margin-top: 4px;
+  font-size: 10px;
+  color: var(--text-faint);
 }
 
-/* ── Image in message ── */
-.msg-img {
-  max-width: 200px; border-radius: 8px;
-  border: 1px solid var(--border);
-  margin-bottom: 6px;
+.message-content p {
+  margin: 12px 0;
 }
 
-/* ── Typing indicator ── */
-.typing-dots {
-  display: flex; gap: 4px; align-items: center;
-  padding: 12px 14px;
-}
-.typing-dots span {
-  width: 5px; height: 5px;
-  background: var(--gold-dim); border-radius: 50%;
-  animation: dot 1.2s infinite;
-}
-.typing-dots span:nth-child(2) { animation-delay: 0.2s; }
-.typing-dots span:nth-child(3) { animation-delay: 0.4s; }
-@keyframes dot {
-  0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
-  30% { transform: translateY(-4px); opacity: 1; }
+.message-content h1,
+.message-content h2,
+.message-content h3 {
+  color: var(--gold-light);
+
+  margin:
+    22px 0 12px;
+
+  font-family:
+    'Cormorant Garamond',
+    serif;
 }
 
-/* ── Input area ── */
+.message-content ul,
+.message-content ol {
+  margin: 10px 0;
+  padding-left: 22px;
+}
+
+.message-content li {
+  margin: 6px 0;
+}
+
+.message-content pre {
+  background: #0d0d0d;
+
+  border: 1px solid rgba(255,255,255,0.08);
+
+  border-radius: 12px;
+
+  padding: 16px;
+
+  overflow-x: auto;
+
+  margin: 14px 0;
+}
+
+.message-content code {
+  font-family:
+    'JetBrains Mono',
+    monospace;
+}
+
+.message-content table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 14px 0;
+}
+
+.message-content td,
+.message-content th {
+  border: 1px solid rgba(255,255,255,0.08);
+  padding: 8px;
+}
+
+.message-content blockquote {
+  border-left: 3px solid var(--gold);
+  padding-left: 12px;
+  margin: 12px 0;
+  opacity: 0.9;
+}
+
+mjx-container {
+  overflow-x: auto;
+  overflow-y: hidden;
+
+  max-width: 100%;
+
+  padding: 8px 0;
+}
+
 .input-area {
-  padding: 12px 16px;
-  border-top: 1px solid var(--border);
-  background: var(--bg2);
   flex-shrink: 0;
+
+  border-top: 1px solid var(--border);
+
+  background: var(--bg2);
+
+  padding: 14px;
 }
 
 .input-row {
-  display: flex; gap: 8px; align-items: flex-end;
+  display: flex;
+  gap: 10px;
+  align-items: flex-end;
 }
 
-.input-box {
+textarea {
   flex: 1;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 10px 12px;
-  color: var(--text);
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 13px;
-  resize: none;
-  outline: none;
-  max-height: 120px;
-  min-height: 40px;
-  transition: border-color 0.2s;
-  line-height: 1.5;
-}
-.input-box::placeholder { color: var(--text-faint); }
-.input-box:focus { border-color: var(--gold-dim); }
 
-.btn-group { display: flex; gap: 6px; }
+  resize: none;
+
+  background: var(--surface);
+
+  border: 1px solid var(--border);
+
+  color: var(--text);
+
+  border-radius: 12px;
+
+  padding: 12px;
+
+  min-height: 48px;
+  max-height: 160px;
+
+  outline: none;
+
+  font-family: inherit;
+
+  line-height: 1.6;
+}
+
+textarea:focus {
+  border-color: var(--gold-dim);
+}
+
+.btns {
+  display: flex;
+  gap: 8px;
+}
 
 .btn {
-  width: 40px; height: 40px;
-  border-radius: 10px; border: none;
-  cursor: pointer; display: flex;
-  align-items: center; justify-content: center;
-  font-size: 16px; transition: all 0.2s;
-  flex-shrink: 0;
+  width: 46px;
+  height: 46px;
+
+  border-radius: 12px;
+
+  border: none;
+
+  cursor: pointer;
+
+  transition: 0.2s;
 }
 
-.btn-photo {
+.photo-btn {
   background: var(--surface2);
   border: 1px solid var(--border);
+
+  color: var(--text);
+}
+
+.send-btn {
+  background:
+    linear-gradient(
+      135deg,
+      var(--gold-dim),
+      var(--gold)
+    );
+
+  color: black;
+
+  font-weight: bold;
+
+  box-shadow:
+    0 0 18px rgba(201,168,76,0.3);
+}
+
+.send-btn:hover {
+  transform: translateY(-1px);
+}
+
+.typing {
+  display: flex;
+  gap: 4px;
+  padding: 10px;
+}
+
+.typing span {
+  width: 5px;
+  height: 5px;
+
+  border-radius: 50%;
+
+  background: var(--gold);
+
+  animation: blink 1s infinite;
+}
+
+.typing span:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.typing span:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+@keyframes blink {
+  0%,100% {
+    opacity: 0.3;
+    transform: translateY(0);
+  }
+
+  50% {
+    opacity: 1;
+    transform: translateY(-4px);
+  }
+}
+
+.welcome {
+  flex: 1;
+
+  display: flex;
+  flex-direction: column;
+
+  align-items: center;
+  justify-content: center;
+
+  text-align: center;
+
+  gap: 16px;
+
   color: var(--text-dim);
 }
-.btn-photo:hover { border-color: var(--gold-dim); color: var(--gold); }
-.btn-photo:active { transform: scale(0.95); }
 
-.btn-send {
-  background: linear-gradient(135deg, var(--gold-dim), var(--gold));
-  color: var(--bg);
-  box-shadow: 0 0 12px rgba(201,168,76,0.3);
-}
-.btn-send:hover { box-shadow: 0 0 20px rgba(201,168,76,0.5); }
-.btn-send:active { transform: scale(0.95); }
-.btn-send:disabled { opacity: 0.4; cursor: not-allowed; }
-
-#file-input { display: none; }
-
-/* ── LaTeX rendered ── */
-.msg-bubble .MJX-TEX { color: var(--gold-light) !important; }
-
-/* ── Code blocks ── */
-.msg-bubble pre {
-  background: var(--bg3);
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: 10px;
-  overflow-x: auto;
-  margin: 6px 0;
-  font-size: 12px;
-}
-.msg-bubble code {
-  background: var(--bg3);
-  border: 1px solid var(--border);
-  border-radius: 3px;
-  padding: 1px 5px;
-  font-size: 12px;
+.welcome h1 {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 48px;
   color: var(--gold-light);
 }
-.msg-bubble pre code {
-  background: none; border: none; padding: 0;
+
+.welcome p {
+  max-width: 500px;
+  line-height: 1.8;
 }
 
-/* ── Welcome ── */
-.welcome {
-  flex: 1; display: flex; flex-direction: column;
-  align-items: center; justify-content: center;
-  gap: 16px; padding: 32px; text-align: center;
-  color: var(--text-dim);
+#file {
+  display: none;
 }
-.welcome-icon {
-  font-size: 48px;
-  filter: drop-shadow(0 0 20px rgba(201,168,76,0.4));
-  animation: pulse 3s ease-in-out infinite;
-}
-@keyframes pulse {
-  0%, 100% { filter: drop-shadow(0 0 20px rgba(201,168,76,0.3)); }
-  50% { filter: drop-shadow(0 0 30px rgba(201,168,76,0.6)); }
-}
-.welcome h2 {
-  font-family: 'Cormorant Garamond', serif;
-  font-size: 22px; font-weight: 300;
-  color: var(--gold-light); letter-spacing: 1px;
-}
-.welcome p { font-size: 12px; line-height: 1.7; max-width: 260px; }
-.welcome-chips {
-  display: flex; flex-wrap: wrap; gap: 8px; justify-content: center;
-  margin-top: 8px;
-}
-.chip {
-  background: var(--surface);
+
+.preview {
+  margin-top: 10px;
+
+  max-width: 120px;
+
+  border-radius: 10px;
+
   border: 1px solid var(--border);
-  border-radius: 20px;
-  padding: 6px 12px;
-  font-size: 11px;
-  color: var(--text-dim);
-  cursor: pointer; transition: all 0.2s;
 }
-.chip:hover { border-color: var(--gold-dim); color: var(--gold); }
 
-/* ── Bold/italic in messages ── */
-.msg-bubble strong { color: var(--gold-light); font-weight: 600; }
-.msg-bubble em { color: var(--text); font-style: italic; }
-.msg-bubble p { margin: 4px 0; }
-.msg-bubble ul, .msg-bubble ol { padding-left: 18px; margin: 4px 0; }
-.msg-bubble li { margin: 2px 0; }
 </style>
 </head>
+
 <body>
+
 <div class="app">
 
-  <!-- Header -->
   <div class="header">
-    <div class="header-icon">🤖</div>
-    <div class="header-text">
-      <div class="header-title">AISerb</div>
-      <div class="header-sub">Llama 3.3 · Vision · LaTeX</div>
+
+    <div class="header-icon">
+      🤖
     </div>
-    <button class="clear-btn" onclick="clearChat()">очистить</button>
+
+    <div>
+      <div class="header-title">
+        AISerb
+      </div>
+
+      <div class="header-sub">
+        AI · LATEX · VISION
+      </div>
+    </div>
+
+    <button class="clear-btn" onclick="clearChat()">
+      очистить
+    </button>
+
   </div>
 
-  <!-- Messages -->
   <div class="messages" id="messages">
+
     <div class="welcome" id="welcome">
-      <div class="welcome-icon">✦</div>
-      <h2>Чем могу помочь?</h2>
-      <p>Задай любой вопрос, отправь фото задачи — я решу и объясню с красивым LaTeX форматированием</p>
-      <div class="welcome-chips">
-        <div class="chip" onclick="useChip(this)">Реши уравнение</div>
-        <div class="chip" onclick="useChip(this)">Объясни тему</div>
-        <div class="chip" onclick="useChip(this)">Напиши код</div>
-        <div class="chip" onclick="useChip(this)">Переведи текст</div>
-        <div class="chip" onclick="useChip(this)">Проверь работу</div>
-      </div>
+
+      <h1>
+        AISerb
+      </h1>
+
+      <p>
+        Умный AI-ассистент с красивым отображением формул, кода и ответов.
+      </p>
+
     </div>
+
   </div>
 
-  <!-- Input -->
   <div class="input-area">
+
     <div class="input-row">
-      <textarea class="input-box" id="input"
-        placeholder="Напиши вопрос или отправь фото..."
+
+      <textarea
+        id="input"
+        placeholder="Напиши сообщение..."
         rows="1"
-        onkeydown="handleKey(event)"
-        oninput="autoResize(this)"></textarea>
-      <div class="btn-group">
-        <button class="btn btn-photo" onclick="document.getElementById('file-input').click()" title="Фото">📷</button>
-        <button class="btn btn-send" id="send-btn" onclick="sendMessage()" title="Отправить">➤</button>
+      ></textarea>
+
+      <div class="btns">
+
+        <button class="btn photo-btn"
+          onclick="document.getElementById('file').click()">
+          📷
+        </button>
+
+        <button class="btn send-btn"
+          onclick="sendMessage()">
+          ➤
+        </button>
+
       </div>
+
     </div>
-    <input type="file" id="file-input" accept="image/*" onchange="handleFile(event)">
+
+    <input
+      type="file"
+      id="file"
+      accept="image/*"
+    >
+
+    <div id="preview"></div>
+
   </div>
 
 </div>
 
 <script>
-const API_KEY   = "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";
-const MODEL     = "llama-3.3-70b-versatile";
-const VIS_MODEL = "meta-llama/llama-4-scout-17b-16e-instruct";
 
-const SYSTEM = `Ты AISerb — умный ИИ-ассистент. Отвечай на языке пользователя.
-Используй красивое LaTeX форматирование для математики:
-- Inline: $формула$
-- Block: $$формула$$
-- Дроби: \\frac{a}{b}
-- Корни: \\sqrt{x}
-- Степени: x^{2}
-Структурируй ответы. Используй **жирный** и *курсив* для важного.`;
+const API_URL = "http://localhost:8000/chat";
+
+const md = window.markdownit({
+  html: false,
+  breaks: true,
+  linkify: true,
+  typographer: true,
+
+  highlight(str, lang) {
+
+    try {
+
+      if (lang && hljs.getLanguage(lang)) {
+
+        return `<pre><code class="hljs">${
+          hljs.highlight(str, {
+            language: lang
+          }).value
+        }</code></pre>`;
+      }
+
+    } catch {}
+
+    return `<pre><code class="hljs">${
+      md.utils.escapeHtml(str)
+    }</code></pre>`;
+  }
+});
 
 let history = [];
-let pendingImage = null;
-let isLoading = false;
+let imageBase64 = null;
 
-// Telegram WebApp init
-if (window.Telegram?.WebApp) {
-  Telegram.WebApp.ready();
-  Telegram.WebApp.expand();
-}
+const input = document.getElementById('input');
 
-function autoResize(el) {
-  el.style.height = 'auto';
-  el.style.height = Math.min(el.scrollHeight, 120) + 'px';
-}
+input.addEventListener('input', () => {
+  input.style.height = 'auto';
+  input.style.height =
+    Math.min(input.scrollHeight, 160) + 'px';
+});
 
-function handleKey(e) {
+input.addEventListener('keydown', e => {
+
   if (e.key === 'Enter' && !e.shiftKey) {
     e.preventDefault();
     sendMessage();
   }
+
+});
+
+document.getElementById('file')
+.addEventListener('change', handleImage);
+
+function preprocessMath(text) {
+
+  text = text.replace(/\\s/g, '');
+
+  text = text.replace(
+    /\\frac(\d)(\d)/g,
+    '\\frac{$1}{$2}'
+  );
+
+  text = text.replace(/\$\$\$/g, '$$');
+
+  text = text.replace(/\$\s*\$/g, '');
+
+  text = text.replace(/\n{3,}/g, '\n\n');
+
+  return text;
 }
 
-function useChip(el) {
-  document.getElementById('input').value = el.textContent;
-  sendMessage();
+function renderMarkdown(text) {
+
+  text = preprocessMath(text);
+
+  let html = md.render(text);
+
+  html = DOMPurify.sanitize(html);
+
+  return html;
 }
 
-function getTime() {
-  return new Date().toLocaleTimeString('ru', { hour: '2-digit', minute: '2-digit' });
+function time() {
+
+  return new Date()
+  .toLocaleTimeString('ru', {
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+}
+
+function scrollBottom() {
+
+  const msgs = document.getElementById('messages');
+
+  msgs.scrollTop = msgs.scrollHeight;
 }
 
 function hideWelcome() {
-  const w = document.getElementById('welcome');
-  if (w) w.remove();
+
+  document.getElementById('welcome')?.remove();
 }
 
-function addMessage(role, content, imgSrc) {
+function addMessage(role, html, image) {
+
   hideWelcome();
+
   const msgs = document.getElementById('messages');
+
   const div = document.createElement('div');
+
   div.className = `msg ${role}`;
 
-  const avatar = role === 'bot' ? '🤖' : '👤';
-  const html = `
-    <div class="msg-avatar">${avatar}</div>
-    <div class="msg-body">
-      ${imgSrc ? `<img class="msg-img" src="${imgSrc}">` : ''}
-      <div class="msg-bubble">${content}</div>
-      <div class="msg-time">${getTime()}</div>
-    </div>`;
-  div.innerHTML = html;
-  msgs.appendChild(div);
-  msgs.scrollTop = msgs.scrollHeight;
+  div.innerHTML = `
+    <div class="avatar">
+      ${role === 'bot' ? '🤖' : '👤'}
+    </div>
 
-  // Render MathJax
+    <div class="msg-body">
+
+      ${image ? `
+        <img class="preview" src="${image}">
+      ` : ''}
+
+      <div class="bubble message-content">
+        ${html}
+      </div>
+
+      <div class="time">
+        ${time()}
+      </div>
+
+    </div>
+  `;
+
+  msgs.appendChild(div);
+
+  scrollBottom();
+
   if (window.MathJax) {
-    MathJax.typesetPromise([div]).catch(() => {});
+
+    MathJax.typesetClear?.([div]);
+
+    MathJax.typesetPromise([div])
+    .catch(console.error);
   }
+
   return div;
 }
 
 function addTyping() {
-  hideWelcome();
+
   const msgs = document.getElementById('messages');
+
   const div = document.createElement('div');
+
   div.className = 'msg bot';
+
   div.id = 'typing';
+
   div.innerHTML = `
-    <div class="msg-avatar">🤖</div>
+    <div class="avatar">🤖</div>
+
     <div class="msg-body">
-      <div class="msg-bubble">
-        <div class="typing-dots"><span></span><span></span><span></span></div>
+      <div class="bubble">
+
+        <div class="typing">
+          <span></span>
+          <span></span>
+          <span></span>
+        </div>
+
       </div>
-    </div>`;
+    </div>
+  `;
+
   msgs.appendChild(div);
-  msgs.scrollTop = msgs.scrollHeight;
+
+  scrollBottom();
 }
 
 function removeTyping() {
+
   document.getElementById('typing')?.remove();
 }
 
-function formatResponse(text) {
-  // Bold **text**
-  text = text.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
-  // Italic *text*
-  text = text.replace(/(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)/g, '<em>$1</em>');
-  // Code blocks
-  text = text.replace(/```(\w*)\n?([\s\S]*?)```/g, '<pre><code>$2</code></pre>');
-  // Inline code
-  text = text.replace(/`([^`]+)`/g, '<code>$1</code>');
-  // Newlines
-  text = text.replace(/\n/g, '<br>');
-  return text;
-}
-
 async function sendMessage() {
-  if (isLoading) return;
-  const input = document.getElementById('input');
+
   const text = input.value.trim();
-  if (!text && !pendingImage) return;
 
-  const img = pendingImage;
-  pendingImage = null;
+  if (!text && !imageBase64)
+    return;
 
-  const displayText = text || 'Реши задачу на фото';
-  addMessage('user', formatResponse(displayText), img?.preview);
+  addMessage(
+    'user',
+    renderMarkdown(text || 'Фото'),
+    imageBase64
+  );
+
+  const payload = {
+    message: text,
+    image: imageBase64,
+    history
+  };
+
+  history.push({
+    role: 'user',
+    content: text
+  });
 
   input.value = '';
-  input.style.height = 'auto';
 
-  isLoading = true;
-  document.getElementById('send-btn').disabled = true;
+  imageBase64 = null;
+
+  document.getElementById('preview').innerHTML = '';
+
   addTyping();
 
   try {
-    let messages;
-    if (img) {
-      // Vision request
-      messages = [{
-        role: 'user',
-        content: [
-          { type: 'text', text: SYSTEM + '\n\n' + displayText },
-          { type: 'image_url', image_url: { url: img.base64 } }
-        ]
-      }];
-    } else {
-      history.push({ role: 'user', content: text });
-      messages = [{ role: 'system', content: SYSTEM }, ...history];
-    }
 
-    const model = img ? VIS_MODEL : MODEL;
-    const resp = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+    const response = await fetch(API_URL, {
+
       method: 'POST',
+
       headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${API_KEY}`
+        'Content-Type': 'application/json'
       },
-      body: JSON.stringify({ model, messages, max_tokens: 2000 })
+
+      body: JSON.stringify(payload)
     });
 
-    const data = await resp.json();
-    if (!resp.ok) throw new Error(data.error?.message || 'API error');
-
-    const answer = data.choices[0].message.content;
-    if (!img) history.push({ role: 'assistant', content: answer });
+    const data = await response.json();
 
     removeTyping();
-    addMessage('bot', formatResponse(answer));
+
+    const answer =
+      preprocessMath(data.response);
+
+    history.push({
+      role: 'assistant',
+      content: answer
+    });
+
+    addMessage(
+      'bot',
+      renderMarkdown(answer)
+    );
 
   } catch (e) {
-    removeTyping();
-    addMessage('bot', `<span style="color:var(--red)">⚠️ Ошибка: ${e.message}</span>`);
-  }
 
-  isLoading = false;
-  document.getElementById('send-btn').disabled = false;
+    removeTyping();
+
+    addMessage(
+      'bot',
+      `<span style="color:red">
+        Ошибка: ${e.message}
+      </span>`
+    );
+  }
 }
 
-function handleFile(e) {
+function handleImage(e) {
+
   const file = e.target.files[0];
-  if (!file) return;
+
+  if (!file)
+    return;
+
   const reader = new FileReader();
+
   reader.onload = ev => {
-    pendingImage = {
-      base64: ev.target.result,
-      preview: ev.target.result
-    };
-    // Show preview in input
-    const input = document.getElementById('input');
-    input.placeholder = '📷 Фото прикреплено. Добавь вопрос или отправь так...';
-    input.focus();
+
+    imageBase64 = ev.target.result;
+
+    document.getElementById('preview')
+    .innerHTML = `
+      <img class="preview"
+      src="${imageBase64}">
+    `;
   };
+
   reader.readAsDataURL(file);
-  e.target.value = '';
 }
 
 function clearChat() {
+
   history = [];
-  pendingImage = null;
-  const msgs = document.getElementById('messages');
-  msgs.innerHTML = `
+
+  document.getElementById('messages')
+  .innerHTML = `
     <div class="welcome" id="welcome">
-      <div class="welcome-icon">✦</div>
-      <h2>Чем могу помочь?</h2>
-      <p>Задай любой вопрос, отправь фото задачи — я решу и объясню с красивым LaTeX форматированием</p>
-      <div class="welcome-chips">
-        <div class="chip" onclick="useChip(this)">Реши уравнение</div>
-        <div class="chip" onclick="useChip(this)">Объясни тему</div>
-        <div class="chip" onclick="useChip(this)">Напиши код</div>
-        <div class="chip" onclick="useChip(this)">Переведи текст</div>
-        <div class="chip" onclick="useChip(this)">Проверь работу</div>
-      </div>
-    </div>`;
-  document.getElementById('input').placeholder = 'Напиши вопрос или отправь фото...';
+
+      <h1>AISerb</h1>
+
+      <p>
+        Умный AI-ассистент с красивым отображением формул, кода и ответов.
+      </p>
+
+    </div>
+  `;
 }
+
 </script>
+
 </body>
 </html>
