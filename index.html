@@ -1,181 +1,792 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AISerb</title>
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            background: #0a0806;
-            color: #f5f0e6;
-            font-family: system-ui, sans-serif;
-            height: 100vh;
-            display: flex;
-            flex-direction: column;
-        }
-        .header {
-            background: #120e08;
-            border-bottom: 1px solid #d4af37;
-            padding: 12px 16px;
-            display: flex;
-            justify-content: space-between;
-        }
-        .messages {
-            flex: 1;
-            overflow-y: auto;
-            padding: 16px;
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-        }
-        .message {
-            display: flex;
-            gap: 10px;
-        }
-        .message.user {
-            flex-direction: row-reverse;
-        }
-        .bubble {
-            background: #1e1810;
-            border: 1px solid #d4af37;
-            padding: 10px 14px;
-            border-radius: 16px;
-            max-width: 80%;
-        }
-        .user .bubble {
-            background: #2a1f0a;
-        }
-        .input-area {
-            background: #120e08;
-            border-top: 1px solid #d4af37;
-            padding: 12px;
-            display: flex;
-            gap: 8px;
-        }
-        textarea {
-            flex: 1;
-            background: #1a150e;
-            border: 1px solid #d4af37;
-            border-radius: 20px;
-            padding: 10px;
-            color: white;
-            font-family: inherit;
-            resize: none;
-            outline: none;
-        }
-        button {
-            background: #d4af37;
-            border: none;
-            border-radius: 20px;
-            padding: 10px 16px;
-            cursor: pointer;
-            font-weight: bold;
-        }
-        .typing {
-            display: flex;
-            gap: 4px;
-            padding: 10px;
-        }
-        .typing span {
-            width: 6px;
-            height: 6px;
-            background: #d4af37;
-            border-radius: 50%;
-            animation: pulse 1s infinite;
-        }
-        @keyframes pulse {
-            0%, 100% { opacity: 0.3; }
-            50% { opacity: 1; }
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>AISerb</title>
+<script>
+window.MathJax = {
+  tex: {
+    inlineMath: [['$','$'],['\\(','\\)']],
+    displayMath: [['$$','$$'],['\\[','\\]']],
+    processEscapes: true,
+    packages: {'[+]': ['ams','boldsymbol']}
+  },
+  options: { skipHtmlTags: ['script','noscript','style','textarea'] },
+  startup: { typeset: false }
+};
+</script>
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;0,700;1,300;1,400&family=JetBrains+Mono:wght@300;400;500&display=swap');
+
+:root {
+  --gold:       #C9A84C;
+  --gold-l:     #E8C97A;
+  --gold-d:     #8B6914;
+  --gold-faint: rgba(201,168,76,0.08);
+  --bg:         #080603;
+  --bg2:        #0D0A05;
+  --bg3:        #120E07;
+  --surf:       #181208;
+  --surf2:      #201809;
+  --border:     rgba(201,168,76,0.12);
+  --border2:    rgba(201,168,76,0.25);
+  --text:       #EDE3C8;
+  --text2:      #9A8A62;
+  --text3:      #4A3F2A;
+  --red:        #C95C4A;
+  --green:      #6A9A5A;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { height: 100%; overflow: hidden; }
+
+body {
+  height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  overflow: hidden;
+  position: relative;
+}
+
+/* Atmospheric background */
+.bg-glow {
+  position: fixed; inset: 0; pointer-events: none; z-index: 0;
+  background:
+    radial-gradient(ellipse 80% 40% at 50% -10%, rgba(201,168,76,0.07) 0%, transparent 60%),
+    radial-gradient(ellipse 40% 60% at 90% 80%, rgba(139,105,20,0.04) 0%, transparent 50%);
+}
+
+/* Noise texture */
+.bg-noise {
+  position: fixed; inset: 0; pointer-events: none; z-index: 0; opacity: 0.03;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* ─── Layout ─── */
+.app {
+  position: relative; z-index: 1;
+  height: 100vh;
+  display: flex; flex-direction: column;
+  max-width: 820px; margin: 0 auto;
+}
+
+/* ─── Header ─── */
+.header {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+  background: linear-gradient(180deg, rgba(201,168,76,0.04) 0%, transparent 100%);
+  flex-shrink: 0; position: relative;
+}
+
+.logo {
+  width: 36px; height: 36px; border-radius: 9px; flex-shrink: 0;
+  background: linear-gradient(135deg, #5A3E08, var(--gold));
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px;
+  box-shadow: 0 0 20px rgba(201,168,76,0.25), inset 0 1px 0 rgba(255,255,255,0.1);
+}
+
+.header-info { flex: 1; }
+.header-name {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 19px; font-weight: 600;
+  color: var(--gold-l); letter-spacing: 0.3px; line-height: 1;
+}
+.header-status {
+  font-size: 10px; color: var(--text2); margin-top: 2px;
+  letter-spacing: 0.8px; text-transform: uppercase;
+  display: flex; align-items: center; gap: 5px;
+}
+.status-dot {
+  width: 5px; height: 5px; border-radius: 50%;
+  background: var(--green);
+  box-shadow: 0 0 6px var(--green);
+  animation: blink 2s ease-in-out infinite;
+}
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+.header-tabs {
+  display: flex; gap: 2px;
+  background: var(--surf); border-radius: 8px; padding: 2px;
+  border: 1px solid var(--border);
+}
+.tab {
+  padding: 5px 10px; border-radius: 6px; cursor: pointer;
+  font-size: 11px; color: var(--text2); transition: all 0.2s;
+  font-family: 'JetBrains Mono', monospace; border: none; background: none;
+}
+.tab.active { background: var(--surf2); color: var(--gold); }
+.tab:hover:not(.active) { color: var(--text); }
+
+/* ─── Tab panels ─── */
+.panel { display: none; flex: 1; overflow: hidden; flex-direction: column; }
+.panel.active { display: flex; }
+
+/* ─── CHAT panel ─── */
+.messages {
+  flex: 1; overflow-y: auto; padding: 16px;
+  display: flex; flex-direction: column; gap: 14px;
+  scroll-behavior: smooth;
+}
+.messages::-webkit-scrollbar { width: 2px; }
+.messages::-webkit-scrollbar-thumb { background: var(--gold-d); border-radius: 2px; }
+
+/* Welcome screen */
+.welcome {
+  flex: 1; display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 14px; padding: 40px 24px; text-align: center;
+}
+.welcome-glyph {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 56px; line-height: 1; color: var(--gold);
+  filter: drop-shadow(0 0 24px rgba(201,168,76,0.5));
+  animation: float 4s ease-in-out infinite;
+}
+@keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-6px)} }
+
+.welcome h2 {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 24px; font-weight: 300; color: var(--gold-l);
+  letter-spacing: 1px;
+}
+.welcome p { font-size: 12px; color: var(--text2); line-height: 1.8; max-width: 280px; }
+
+.chips { display: flex; flex-wrap: wrap; gap: 7px; justify-content: center; margin-top: 6px; }
+.chip {
+  background: var(--surf); border: 1px solid var(--border);
+  border-radius: 20px; padding: 6px 13px; font-size: 11px;
+  color: var(--text2); cursor: pointer; transition: all 0.2s;
+  font-family: 'JetBrains Mono', monospace;
+}
+.chip:hover { border-color: var(--gold-d); color: var(--gold); transform: translateY(-1px); }
+.chip:active { transform: translateY(0); }
+
+/* Messages */
+.msg { display: flex; gap: 9px; animation: msgIn 0.25s ease; }
+@keyframes msgIn { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }
+
+.msg.user { flex-direction: row-reverse; }
+
+.avatar {
+  width: 28px; height: 28px; border-radius: 7px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px; margin-top: 1px;
+}
+.msg.bot  .avatar { background: linear-gradient(135deg,var(--gold-d),var(--gold)); box-shadow: 0 0 12px rgba(201,168,76,0.2); }
+.msg.user .avatar { background: var(--surf2); border: 1px solid var(--border); }
+
+.msg-body { max-width: 84%; display: flex; flex-direction: column; gap: 3px; }
+.msg.user .msg-body { align-items: flex-end; }
+
+.bubble {
+  padding: 10px 13px; border-radius: 12px; line-height: 1.7;
+  font-size: 13px; word-break: break-word;
+}
+.msg.bot  .bubble { background: var(--surf); border: 1px solid var(--border); border-top-left-radius: 3px; }
+.msg.user .bubble { background: linear-gradient(135deg,#281C06,#1A1206); border: 1px solid var(--border2); border-top-right-radius: 3px; color: var(--gold-l); }
+
+.msg-time { font-size: 10px; color: var(--text3); padding: 0 3px; }
+
+/* Photo in message */
+.msg-photo {
+  max-width: 180px; border-radius: 8px; border: 1px solid var(--border);
+  cursor: pointer; transition: transform 0.2s;
+}
+.msg-photo:hover { transform: scale(1.02); }
+
+/* Typing */
+.typing-bubble { display: flex; align-items: center; gap: 4px; padding: 12px 14px; }
+.dot { width: 5px; height: 5px; border-radius: 50%; background: var(--gold-d); animation: dotAnim 1.2s infinite; }
+.dot:nth-child(2){animation-delay:.2s} .dot:nth-child(3){animation-delay:.4s}
+@keyframes dotAnim { 0%,60%,100%{transform:translateY(0);opacity:.4} 30%{transform:translateY(-5px);opacity:1} }
+
+/* Bubble content styling */
+.bubble strong { color: var(--gold-l); font-weight: 600; }
+.bubble em { font-style: italic; opacity: 0.9; }
+.bubble code { background: var(--bg3); border: 1px solid var(--border); border-radius: 3px; padding: 1px 5px; font-size: 11.5px; color: var(--gold-l); }
+.bubble pre { background: var(--bg3); border: 1px solid var(--border); border-radius: 8px; padding: 12px; overflow-x: auto; margin: 6px 0; }
+.bubble pre code { background: none; border: none; padding: 0; font-size: 12px; color: var(--text); }
+.bubble ul, .bubble ol { padding-left: 18px; margin: 4px 0; }
+.bubble li { margin: 3px 0; }
+.bubble p { margin: 4px 0; }
+.bubble h3,.bubble h4 { color: var(--gold-l); font-family:'Cormorant Garamond',serif; margin: 8px 0 4px; font-size: 15px; }
+
+/* MathJax in dark theme */
+.bubble mjx-container { color: var(--gold-l) !important; margin: 4px 0; }
+.bubble mjx-container[display="true"] { margin: 10px 0 !important; overflow-x: auto; }
+
+/* ─── Input area ─── */
+.input-area {
+  padding: 10px 14px 12px;
+  border-top: 1px solid var(--border);
+  background: var(--bg2); flex-shrink: 0;
+}
+
+.img-preview {
+  display: none; align-items: center; gap: 8px;
+  background: var(--surf); border: 1px solid var(--border2);
+  border-radius: 8px; padding: 7px 10px; margin-bottom: 8px;
+}
+.img-preview.show { display: flex; }
+.preview-thumb { width: 36px; height: 36px; border-radius: 5px; object-fit: cover; }
+.preview-name { flex: 1; font-size: 11px; color: var(--text2); }
+.preview-remove { cursor: pointer; color: var(--text3); font-size: 14px; transition: color 0.2s; }
+.preview-remove:hover { color: var(--red); }
+
+.input-row { display: flex; gap: 8px; align-items: flex-end; }
+
+.textarea {
+  flex: 1; background: var(--surf); border: 1px solid var(--border);
+  border-radius: 10px; padding: 9px 12px; color: var(--text);
+  font-family: 'JetBrains Mono', monospace; font-size: 13px;
+  resize: none; outline: none; max-height: 110px; min-height: 38px;
+  transition: border-color 0.2s; line-height: 1.5;
+}
+.textarea::placeholder { color: var(--text3); }
+.textarea:focus { border-color: var(--gold-d); }
+
+.btn {
+  width: 38px; height: 38px; border-radius: 9px; border: none;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  font-size: 15px; transition: all 0.15s; flex-shrink: 0;
+}
+.btn-icon { background: var(--surf2); border: 1px solid var(--border); color: var(--text2); }
+.btn-icon:hover { border-color: var(--gold-d); color: var(--gold); }
+.btn-send {
+  background: linear-gradient(135deg, var(--gold-d), var(--gold));
+  color: var(--bg); box-shadow: 0 0 14px rgba(201,168,76,0.3);
+}
+.btn-send:hover { box-shadow: 0 0 22px rgba(201,168,76,0.5); transform: scale(1.04); }
+.btn-send:disabled { opacity: 0.35; cursor: not-allowed; transform: none; }
+.btn:active:not(:disabled) { transform: scale(0.95); }
+
+/* ─── STATS panel ─── */
+.stats-panel {
+  flex: 1; overflow-y: auto; padding: 20px 16px;
+  display: flex; flex-direction: column; gap: 16px;
+}
+.stats-panel::-webkit-scrollbar { width: 2px; }
+.stats-panel::-webkit-scrollbar-thumb { background: var(--gold-d); }
+
+.stats-header {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 22px; font-weight: 300; color: var(--gold-l);
+  padding-bottom: 12px; border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 10px;
+}
+
+.stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+.stat-card {
+  background: var(--surf); border: 1px solid var(--border);
+  border-radius: 12px; padding: 14px 16px;
+  transition: border-color 0.2s;
+}
+.stat-card:hover { border-color: var(--gold-d); }
+.stat-label { font-size: 10px; color: var(--text2); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; }
+.stat-value {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 28px; font-weight: 600; color: var(--gold-l);
+  line-height: 1;
+}
+.stat-sub { font-size: 10px; color: var(--text3); margin-top: 3px; }
+
+.section-title {
+  font-size: 10px; color: var(--text2); text-transform: uppercase;
+  letter-spacing: 1.5px; margin-bottom: 8px;
+}
+
+.history-list { display: flex; flex-direction: column; gap: 6px; }
+.history-item {
+  background: var(--surf); border: 1px solid var(--border);
+  border-radius: 8px; padding: 9px 12px;
+  display: flex; align-items: center; justify-content: space-between;
+  cursor: pointer; transition: all 0.2s;
+}
+.history-item:hover { border-color: var(--gold-d); }
+.history-text { font-size: 12px; color: var(--text); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.history-time { font-size: 10px; color: var(--text3); margin-left: 10px; flex-shrink: 0; }
+
+.action-btn {
+  width: 100%; padding: 11px; border-radius: 10px;
+  border: 1px solid var(--border); background: var(--surf);
+  color: var(--text2); font-family: 'JetBrains Mono', monospace;
+  font-size: 12px; cursor: pointer; transition: all 0.2s;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+}
+.action-btn:hover { border-color: var(--gold-d); color: var(--gold); }
+.action-btn.danger:hover { border-color: var(--red); color: var(--red); }
+
+.badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  background: var(--gold-faint); border: 1px solid var(--border2);
+  border-radius: 20px; padding: 3px 10px; font-size: 11px; color: var(--gold);
+}
+
+/* ─── Image viewer ─── */
+.img-viewer {
+  display: none; position: fixed; inset: 0; z-index: 100;
+  background: rgba(0,0,0,0.92); align-items: center; justify-content: center;
+}
+.img-viewer.show { display: flex; }
+.img-viewer img { max-width: 90vw; max-height: 90vh; border-radius: 8px; }
+.img-viewer-close {
+  position: absolute; top: 16px; right: 16px;
+  background: var(--surf); border: 1px solid var(--border);
+  color: var(--text); width: 36px; height: 36px; border-radius: 8px;
+  cursor: pointer; font-size: 18px; display: flex; align-items: center; justify-content: center;
+}
+
+#file-input { display: none; }
+</style>
 </head>
 <body>
+<div class="bg-glow"></div>
+<div class="bg-noise"></div>
 
-<div class="header">
-    <div>✨ AISerb</div>
-    <button onclick="clearChat()">Очистить</button>
-</div>
-
-<div class="messages" id="messages">
-    <div style="text-align:center; margin-top:40px;">
-        ✨ <strong>AISerb</strong><br>
-        Напиши сообщение
+<div class="app">
+  <!-- Header -->
+  <div class="header">
+    <div class="logo">🤖</div>
+    <div class="header-info">
+      <div class="header-name">AISerb</div>
+      <div class="header-status">
+        <div class="status-dot"></div>
+        <span>Llama 3.3 · Vision · LaTeX</span>
+      </div>
     </div>
+    <div class="header-tabs">
+      <button class="tab active" onclick="switchTab('chat')">💬 Чат</button>
+      <button class="tab" onclick="switchTab('stats')">📊 Профиль</button>
+    </div>
+  </div>
+
+  <!-- CHAT TAB -->
+  <div class="panel active" id="tab-chat">
+    <div class="messages" id="messages">
+      <div class="welcome" id="welcome">
+        <div class="welcome-glyph">✦</div>
+        <h2>Чем помочь?</h2>
+        <p>Задай вопрос или отправь фото задачи — отвечу с красивым LaTeX форматированием</p>
+        <div class="chips">
+          <div class="chip" onclick="chip(this)">Реши уравнение</div>
+          <div class="chip" onclick="chip(this)">Объясни тему</div>
+          <div class="chip" onclick="chip(this)">Напиши код</div>
+          <div class="chip" onclick="chip(this)">Переведи текст</div>
+          <div class="chip" onclick="chip(this)">Проверь решение</div>
+          <div class="chip" onclick="chip(this)">Физика / химия</div>
+        </div>
+      </div>
+    </div>
+    <div class="input-area">
+      <div class="img-preview" id="img-preview">
+        <img id="preview-thumb" class="preview-thumb" src="" alt="">
+        <span class="preview-name" id="preview-name">фото прикреплено</span>
+        <span class="preview-remove" onclick="removeImg()">✕</span>
+      </div>
+      <div class="input-row">
+        <textarea class="textarea" id="input" placeholder="Напиши вопрос..." rows="1"
+          onkeydown="handleKey(event)" oninput="resize(this)"></textarea>
+        <button class="btn btn-icon" onclick="document.getElementById('file-input').click()" title="Фото">📷</button>
+        <button class="btn btn-send" id="send-btn" onclick="send()">➤</button>
+      </div>
+      <input type="file" id="file-input" accept="image/*" onchange="onFile(event)">
+    </div>
+  </div>
+
+  <!-- STATS TAB -->
+  <div class="panel" id="tab-stats">
+    <div class="stats-panel">
+      <div class="stats-header">📊 Профиль & Статистика</div>
+
+      <div class="stat-grid">
+        <div class="stat-card">
+          <div class="stat-label">Сообщений</div>
+          <div class="stat-value" id="st-msgs">0</div>
+          <div class="stat-sub">за всё время</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Сессия</div>
+          <div class="stat-value" id="st-session">0</div>
+          <div class="stat-sub">в этом чате</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Фото</div>
+          <div class="stat-value" id="st-photos">0</div>
+          <div class="stat-sub">обработано</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Время</div>
+          <div class="stat-value" id="st-time">—</div>
+          <div class="stat-sub">первое сообщение</div>
+        </div>
+      </div>
+
+      <div>
+        <div class="section-title">Модели</div>
+        <div class="stat-grid">
+          <div class="stat-card">
+            <div class="stat-label">Текст</div>
+            <div style="font-size:11px;color:var(--gold);margin-top:4px">llama-3.3-70b</div>
+            <div class="stat-sub">versatile</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Vision</div>
+            <div style="font-size:11px;color:var(--gold);margin-top:4px">llama-4-scout</div>
+            <div class="stat-sub">17b · multimodal</div>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <div class="section-title">История сессии</div>
+        <div class="history-list" id="history-list">
+          <div style="font-size:11px;color:var(--text3);padding:8px">Нет сообщений</div>
+        </div>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <button class="action-btn" onclick="exportChat()">📥 Экспорт чата</button>
+        <button class="action-btn danger" onclick="clearAll()">🗑 Очистить историю</button>
+      </div>
+    </div>
+  </div>
 </div>
 
-<div class="input-area">
-    <textarea id="input" placeholder="Напиши вопрос..." rows="1"></textarea>
-    <button onclick="sendMessage()">➤</button>
+<!-- Image viewer -->
+<div class="img-viewer" id="img-viewer" onclick="closeViewer()">
+  <button class="img-viewer-close">✕</button>
+  <img id="viewer-img" src="" alt="">
 </div>
 
 <script>
-const API_URL = "https://unshaven-petri-spotless.ngrok-free.dev/chat";
+// ── Config ──────────────────────────────────────────────────────────────────
+const API   = "https://api.groq.com/openai/v1/chat/completions";
+const KEY   = "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";
+const MODEL = "llama-3.3-70b-versatile";
+const VMOD  = "meta-llama/llama-4-scout-17b-16e-instruct";
 
-let history = [];
+const SYS = `Ты AISerb — умный ИИ-ассистент. Отвечай на языке пользователя. Будь точным и полезным.
 
-function addMessage(role, text) {
-    const container = document.getElementById('messages');
-    const div = document.createElement('div');
-    div.className = `message ${role}`;
-    div.innerHTML = `<div class="bubble">${text}</div>`;
-    container.appendChild(div);
-    container.scrollTop = container.scrollHeight;
+ФОРМАТИРОВАНИЕ (строго):
+- Используй LaTeX для ВСЕЙ математики: $формула$ (inline) и $$формула$$ (block)
+- Дроби: \\frac{a}{b}, корни: \\sqrt{x}, степени: x^{2}, логарифмы: \\log_{2}(x)
+- Используй **жирный** для ключевых терминов и ответов
+- Используй *курсив* для пояснений
+- Для кода используй \`\`\`язык\\nкод\`\`\`
+- Структурируй шаги решения пронумерованным списком
+- В конце задачи: **Ответ:** $значение$
+- Если спросят кто создал — скажи что Serb`;
+
+const VSYS = `Ты AISerb — умный ИИ-ассистент с поддержкой изображений.
+Внимательно анализируй изображение и отвечай подробно на языке пользователя.
+
+ФОРМАТИРОВАНИЕ (строго):
+- Используй LaTeX для математики: $inline$ и $$block$$
+- Дроби: \\frac{a}{b}, корни: \\sqrt{x}, степени: x^{n}
+- Структурируй решение по шагам
+- В конце: **Ответ:** $значение$`;
+
+// ── State ────────────────────────────────────────────────────────────────────
+let history  = [];
+let imgData  = null;
+let loading  = false;
+let stats    = JSON.parse(localStorage.getItem('aiserb_stats') || '{"msgs":0,"photos":0,"first":null}');
+let sessionMsgs = 0;
+let sessionHistory = [];
+
+// ── Telegram WebApp ──────────────────────────────────────────────────────────
+if (window.Telegram?.WebApp) {
+  Telegram.WebApp.ready();
+  Telegram.WebApp.expand();
+  Telegram.WebApp.setHeaderColor('#080603');
+  Telegram.WebApp.setBackgroundColor('#080603');
+}
+
+// Check for photo passed from bot via URL params
+const params = new URLSearchParams(window.location.search);
+const photoParam = params.get('photo');
+if (photoParam) {
+  // Will be handled after page loads
+  window.pendingPhoto = decodeURIComponent(photoParam);
+}
+
+// ── UI helpers ───────────────────────────────────────────────────────────────
+function switchTab(tab) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById(`tab-${tab}`).classList.add('active');
+  event.target.classList.add('active');
+  if (tab === 'stats') updateStats();
+}
+
+function resize(el) {
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 110) + 'px';
+}
+
+function handleKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); }
+}
+
+function chip(el) {
+  document.getElementById('input').value = el.textContent;
+  send();
+}
+
+function getTime() {
+  return new Date().toLocaleTimeString('ru', {hour:'2-digit',minute:'2-digit'});
+}
+
+function hideWelcome() {
+  document.getElementById('welcome')?.remove();
+}
+
+// ── Message rendering ────────────────────────────────────────────────────────
+function renderText(text) {
+  // Code blocks first
+  text = text.replace(/```(\w*)\n?([\s\S]*?)```/g, (_, lang, code) =>
+    `<pre><code>${escHtml(code.trim())}</code></pre>`);
+  // Inline code
+  text = text.replace(/`([^`]+)`/g, (_, c) => `<code>${escHtml(c)}</code>`);
+  // Bold
+  text = text.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  // Italic
+  text = text.replace(/(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)/g, '<em>$1</em>');
+  // Headers
+  text = text.replace(/^#{1,4}\s+(.+)$/gm, '<h3>$1</h3>');
+  // Ordered list
+  text = text.replace(/^\d+\.\s+(.+)$/gm, '<li>$1</li>');
+  text = text.replace(/(<li>.*<\/li>)/gs, m => `<ol>${m}</ol>`);
+  // Unordered list
+  text = text.replace(/^[-•]\s+(.+)$/gm, '<li>$1</li>');
+  // Newlines (not inside pre)
+  text = text.replace(/\n/g, '<br>');
+  return text;
+}
+
+function escHtml(t) {
+  return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function addMsg(role, content, photo) {
+  hideWelcome();
+  const msgs = document.getElementById('messages');
+  const d = document.createElement('div');
+  d.className = `msg ${role}`;
+
+  const av = role === 'bot' ? '🤖' : '👤';
+  d.innerHTML = `
+    <div class="avatar">${av}</div>
+    <div class="msg-body">
+      ${photo ? `<img class="msg-photo" src="${photo}" onclick="viewImg('${photo}')">` : ''}
+      <div class="bubble">${content}</div>
+      <div class="msg-time">${getTime()}</div>
+    </div>`;
+  msgs.appendChild(d);
+
+  // Typeset MathJax only in new bubble
+  const bubble = d.querySelector('.bubble');
+  if (window.MathJax?.typesetPromise) {
+    MathJax.typesetPromise([bubble]).catch(()=>{});
+  }
+
+  msgs.scrollTop = msgs.scrollHeight;
+  return d;
 }
 
 function addTyping() {
-    const container = document.getElementById('messages');
-    const div = document.createElement('div');
-    div.className = 'message bot';
-    div.id = 'typing';
-    div.innerHTML = `<div class="bubble"><div class="typing"><span></span><span></span><span></span></div></div>`;
-    container.appendChild(div);
-    container.scrollTop = container.scrollHeight;
+  hideWelcome();
+  const msgs = document.getElementById('messages');
+  const d = document.createElement('div');
+  d.className = 'msg bot'; d.id = 'typing';
+  d.innerHTML = `<div class="avatar">🤖</div><div class="msg-body"><div class="bubble"><div class="typing-bubble"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div></div></div>`;
+  msgs.appendChild(d);
+  msgs.scrollTop = msgs.scrollHeight;
 }
 
-function removeTyping() {
-    const t = document.getElementById('typing');
-    if (t) t.remove();
-}
+function removeTyping() { document.getElementById('typing')?.remove(); }
 
-async function sendMessage() {
-    const input = document.getElementById('input');
-    const text = input.value.trim();
-    if (!text) return;
-    
-    addMessage('user', text);
-    input.value = '';
-    addTyping();
-    
-    try {
-        const res = await fetch(API_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ message: text, history: history })
-        });
-        const data = await res.json();
-        removeTyping();
-        const reply = data.response || "Нет ответа";
-        history.push({ role: 'user', content: text });
-        history.push({ role: 'assistant', content: reply });
-        addMessage('bot', reply);
-    } catch (e) {
-        removeTyping();
-        addMessage('bot', '⚠️ Ошибка: ' + e.message);
+// ── Send message ─────────────────────────────────────────────────────────────
+async function send() {
+  if (loading) return;
+  const inp  = document.getElementById('input');
+  const text = inp.value.trim();
+  const img  = imgData;
+  if (!text && !img) return;
+
+  const display = text || 'Реши задачу на фото';
+  addMsg('user', renderText(display), img?.preview);
+
+  inp.value = ''; inp.style.height = 'auto';
+  removeImg();
+  loading = true;
+  document.getElementById('send-btn').disabled = true;
+  addTyping();
+
+  // Update stats
+  stats.msgs++;
+  sessionMsgs++;
+  if (img) stats.photos++;
+  if (!stats.first) stats.first = new Date().toLocaleDateString('ru');
+  saveStats();
+
+  // History for stats tab
+  sessionHistory.push({ text: display, time: getTime(), isPhoto: !!img });
+
+  try {
+    let messages, model;
+
+    if (img) {
+      model = VMOD;
+      messages = [{
+        role: 'user',
+        content: [
+          { type: 'text', text: VSYS + '\n\n' + display },
+          { type: 'image_url', image_url: { url: img.base64 } }
+        ]
+      }];
+    } else {
+      model = MODEL;
+      history.push({ role: 'user', content: text });
+      messages = [{ role: 'system', content: SYS }, ...history.slice(-20)];
     }
+
+    const res = await fetch(API, {
+      method: 'POST',
+      headers: { 'Content-Type':'application/json', 'Authorization':`Bearer ${KEY}` },
+      body: JSON.stringify({ model, messages, max_tokens: 2000, temperature: 0.7 })
+    });
+
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error?.message || `HTTP ${res.status}`);
+
+    const answer = data.choices[0].message.content;
+    if (!img) history.push({ role: 'assistant', content: answer });
+
+    removeTyping();
+    addMsg('bot', renderText(answer));
+
+  } catch(e) {
+    removeTyping();
+    addMsg('bot', `<span style="color:var(--red)">⚠️ ${e.message}</span>`);
+  }
+
+  loading = false;
+  document.getElementById('send-btn').disabled = false;
 }
 
-function clearChat() {
-    history = [];
-    document.getElementById('messages').innerHTML = '<div style="text-align:center; margin-top:40px;">✨ <strong>AISerb</strong><br>Напиши сообщение</div>';
+// ── Image handling ────────────────────────────────────────────────────────────
+function onFile(e) {
+  const f = e.target.files[0];
+  if (!f) return;
+  const r = new FileReader();
+  r.onload = ev => {
+    imgData = { base64: ev.target.result, preview: ev.target.result };
+    document.getElementById('preview-thumb').src = ev.target.result;
+    document.getElementById('preview-name').textContent = f.name;
+    document.getElementById('img-preview').classList.add('show');
+    document.getElementById('input').placeholder = 'Добавь вопрос к фото...';
+    document.getElementById('input').focus();
+  };
+  r.readAsDataURL(f);
+  e.target.value = '';
 }
 
-document.getElementById('input').addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-        e.preventDefault();
-        sendMessage();
-    }
-});
+function removeImg() {
+  imgData = null;
+  document.getElementById('img-preview').classList.remove('show');
+  document.getElementById('input').placeholder = 'Напиши вопрос...';
+}
+
+// ── Image viewer ─────────────────────────────────────────────────────────────
+function viewImg(src) {
+  document.getElementById('viewer-img').src = src;
+  document.getElementById('img-viewer').classList.add('show');
+}
+function closeViewer() { document.getElementById('img-viewer').classList.remove('show'); }
+
+// ── Stats ────────────────────────────────────────────────────────────────────
+function saveStats() { localStorage.setItem('aiserb_stats', JSON.stringify(stats)); }
+
+function updateStats() {
+  document.getElementById('st-msgs').textContent    = stats.msgs;
+  document.getElementById('st-session').textContent = sessionMsgs;
+  document.getElementById('st-photos').textContent  = stats.photos;
+  document.getElementById('st-time').textContent    = stats.first || '—';
+
+  const list = document.getElementById('history-list');
+  if (sessionHistory.length === 0) {
+    list.innerHTML = '<div style="font-size:11px;color:var(--text3);padding:8px">Нет сообщений</div>';
+    return;
+  }
+  list.innerHTML = sessionHistory.slice(-10).reverse().map(h => `
+    <div class="history-item" onclick="reuse('${escHtml(h.text)}')">
+      <span class="history-text">${h.isPhoto ? '📷 ' : ''}${escHtml(h.text)}</span>
+      <span class="history-time">${h.time}</span>
+    </div>`).join('');
+}
+
+function reuse(text) {
+  switchTabDirect('chat');
+  document.getElementById('input').value = text;
+  document.getElementById('input').focus();
+}
+
+function switchTabDirect(tab) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById(`tab-${tab}`).classList.add('active');
+  document.querySelector(`.tab:${tab === 'chat' ? 'first-child' : 'last-child'}`).classList.add('active');
+}
+
+function clearAll() {
+  if (!confirm('Очистить историю?')) return;
+  history = []; sessionHistory = []; sessionMsgs = 0;
+  stats = { msgs: 0, photos: 0, first: null };
+  saveStats();
+  const msgs = document.getElementById('messages');
+  msgs.innerHTML = `
+    <div class="welcome" id="welcome">
+      <div class="welcome-glyph">✦</div>
+      <h2>Чем помочь?</h2>
+      <p>Задай вопрос или отправь фото задачи</p>
+      <div class="chips">
+        <div class="chip" onclick="chip(this)">Реши уравнение</div>
+        <div class="chip" onclick="chip(this)">Объясни тему</div>
+        <div class="chip" onclick="chip(this)">Напиши код</div>
+        <div class="chip" onclick="chip(this)">Переведи текст</div>
+      </div>
+    </div>`;
+  updateStats();
+}
+
+function exportChat() {
+  const lines = [];
+  document.querySelectorAll('.msg').forEach(m => {
+    const role = m.classList.contains('user') ? 'Вы' : 'AISerb';
+    const text = m.querySelector('.bubble')?.innerText || '';
+    const time = m.querySelector('.msg-time')?.textContent || '';
+    lines.push(`[${time}] ${role}:\n${text}\n`);
+  });
+  if (lines.length === 0) { alert('Нет сообщений для экспорта'); return; }
+  const blob = new Blob([lines.join('\n---\n')], {type:'text/plain'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `aiserb_chat_${new Date().toLocaleDateString('ru').replace(/\./g,'-')}.txt`;
+  a.click();
+}
+
+// ── Init ─────────────────────────────────────────────────────────────────────
+updateStats();
 </script>
 </body>
 </html>
