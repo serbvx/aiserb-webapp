@@ -10,9 +10,13 @@ window.MathJax = {
     inlineMath: [['$','$'],['\\(','\\)']],
     displayMath: [['$$','$$'],['\\[','\\]']],
     processEscapes: true,
+    processEnvironments: true,
     tags: 'ams'
   },
-  options: { skipHtmlTags: ['script','noscript','style','textarea','pre'] },
+  options: {
+    skipHtmlTags: ['script','noscript','style','textarea'],
+    processHtmlClass: 'bubble'
+  },
   startup: { typeset: false }
 };
 </script>
@@ -434,12 +438,26 @@ function onKey(e) { if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send();}
 
 // ── Fullscreen ─────────────────────────────────────────────
 function toggleFS() {
-  if (!document.fullscreenElement) {
-    document.documentElement.requestFullscreen().catch(()=>{});
+  const el = document.documentElement;
+  const req = el.requestFullscreen || el.webkitRequestFullscreen || el.mozRequestFullScreen || el.msRequestFullscreen;
+  const exit = document.exitFullscreen || document.webkitExitFullscreen || document.mozCancelFullScreen || document.msExitFullscreen;
+  const isFS = document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement;
+  
+  if (!isFS) {
+    if (req) req.call(el).catch(()=>{
+      // Telegram WebApp expand as fallback
+      if (window.Telegram?.WebApp) Telegram.WebApp.expand();
+    });
   } else {
-    document.exitFullscreen().catch(()=>{});
+    if (exit) exit.call(document).catch(()=>{});
   }
 }
+
+// Update fullscreen button icon
+document.addEventListener('fullscreenchange', () => {
+  const btn = document.querySelector('.fs-btn');
+  if (btn) btn.textContent = document.fullscreenElement ? '⛶' : '⛶';
+});
 
 // ── Tab switch ─────────────────────────────────────────────
 function switchTab(name, btn) {
@@ -476,6 +494,11 @@ function render(text) {
     const items = m.trim().split('\n').map(l=>l.replace(/^[-•*]\s+/,'')).map(l=>`<li>${l}</li>`).join('');
     return `<ul>${items}</ul>`;
   });
+  // Protect LaTeX before newline conversion
+  // Block math $$ ... $$ on multiple lines - protect it
+  text = text.replace(/\$\$([\s\S]*?)\$\$/g, (m, inner) => {
+    return '$$' + inner.replace(/\n/g, ' ') + '$$';
+  });
   // Newlines
   text = text.replace(/\n/g,'<br>');
   // Clean double br after block elements
@@ -502,7 +525,11 @@ function addMsg(role, content, photo) {
     </div>`;
   msgs.appendChild(d);
   const bubble = d.querySelector('.bubble');
-  if(window.MathJax?.typesetPromise) MathJax.typesetPromise([bubble]).catch(()=>{});
+  if(window.MathJax?.typesetPromise) {
+    MathJax.typesetPromise([bubble])
+      .then(() => { msgs.scrollTop = msgs.scrollHeight; })
+      .catch(()=>{});
+  }
   msgs.scrollTop = msgs.scrollHeight;
 }
 
